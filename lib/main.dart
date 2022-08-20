@@ -11,7 +11,6 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -33,9 +32,9 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  var homeList = <String>[];
-  String page = '1';
-  String pageCount = '15';
+  var picList = HomeList().album;
+  int page = 1;
+  int pageCount = 15;
 
   @override
   void initState() {
@@ -46,12 +45,15 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<void> _getImagesList() async {
     var client = HttpClient();
     try {
-      HttpClientRequest request =
-      await client.get('dili.bdatu.com', 80, '/jiekou/mains/p1.html');
+      HttpClientRequest request = await client.get(
+          'dili.bdatu.com', 80, '/jiekou/mains/p' + page.toString() + '.html');
       HttpClientResponse response = await request.close();
       final data = await response.transform(utf8.decoder).join();
       HomeList homeList = HomeList.fromJson(jsonDecode(data));
-      print(homeList.album?[0].title);
+      setState(() {
+        picList = homeList.album;
+      });
+      // print(picList?[2].title);
     } finally {
       client.close();
     }
@@ -61,18 +63,62 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
+          toolbarHeight: 50,
           title: Text(widget.title),
+          actions: [
+            IconButton(
+              onPressed: () {},
+              icon: const Icon(Icons.favorite),
+            ),
+            IconButton(
+              onPressed: () {},
+              icon: const Icon(Icons.more_vert),
+            )
+          ],
         ),
         body: Padding(
           padding: const EdgeInsets.all(8),
-          child: ListView.builder(
-              itemCount: 1,
-              itemBuilder: (context, index) {
-                return ElevatedButton(
-                  onPressed: _getImagesList,
-                  child: Text("test"),
-                );
-              }),
+          child: ListView.separated(
+            itemCount: picList!.length - 2,
+            itemBuilder: (context, index) {
+              return Card(
+                  child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Stack(
+                  alignment: Alignment.bottomCenter,
+                  children: [
+                    Image(
+                        image: NetworkImage(
+                            picList?[page == 1 ? index + 2 : index].url ?? '')),
+                    Container(
+                        alignment: Alignment.bottomCenter,
+                        // width: 100,
+                        height: 40,
+                        // color: const Color.fromRGBO(0, 0, 0, 0.3),
+                        decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                              Color.fromRGBO(0, 0, 0, 0),
+                              Color.fromRGBO(0, 0, 0, 0.3),
+                              Color.fromRGBO(0, 0, 0, 0.5),
+                            ])),
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 5),
+                          child: Text(
+                            picList?[page == 1 ? index + 2 : index].title ?? '',
+                            style: const TextStyle(
+                                color: Color.fromRGBO(220, 220, 220, 1)),
+                          ),
+                        )),
+                  ],
+                ),
+              ));
+            },
+            separatorBuilder: (BuildContext context, int index) =>
+                const Divider(),
+          ),
         ));
   }
 }
