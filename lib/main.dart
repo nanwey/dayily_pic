@@ -50,10 +50,15 @@ class _MyHomePageState extends State<MyHomePage> {
       HttpClientResponse response = await request.close();
       final data = await response.transform(utf8.decoder).join();
       HomeList homeList = HomeList.fromJson(jsonDecode(data));
+      //过滤广告
+      for (int i = 0; i < 2; i++) {
+        if (homeList.album?[i].timing == '0') {
+          homeList.album?.removeAt(i);
+        }
+      }
       setState(() {
         picList = homeList.album;
       });
-      // print(picList?[2].title);
     } finally {
       client.close();
     }
@@ -70,16 +75,24 @@ class _MyHomePageState extends State<MyHomePage> {
               onPressed: () {},
               icon: const Icon(Icons.favorite),
             ),
-            IconButton(
-              onPressed: () {},
-              icon: const Icon(Icons.more_vert),
-            )
+            PopupMenuButton<String>(
+                onSelected: (String data) {},
+                itemBuilder: (BuildContext context) => [
+                      const PopupMenuItem<String>(
+                        child: Text("设置"),
+                        value: "设置",
+                      ),
+                      const PopupMenuItem<String>(
+                        child: Text("关于"),
+                        value: "关于",
+                      )
+                    ]),
           ],
         ),
         body: Padding(
           padding: const EdgeInsets.all(8),
           child: ListView.separated(
-            itemCount: picList!.length - 2,
+            itemCount: picList!.length,
             itemBuilder: (context, index) {
               return Card(
                   child: Padding(
@@ -87,9 +100,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: Stack(
                   alignment: Alignment.bottomCenter,
                   children: [
-                    Image(
-                        image: NetworkImage(
-                            picList?[page == 1 ? index + 2 : index].url ?? '')),
+                    Image(image: NetworkImage(picList?[index].url ?? '')),
                     Container(
                         alignment: Alignment.bottomCenter,
                         // width: 100,
@@ -107,9 +118,27 @@ class _MyHomePageState extends State<MyHomePage> {
                         child: Padding(
                           padding: const EdgeInsets.only(bottom: 5),
                           child: Text(
-                            picList?[page == 1 ? index + 2 : index].title ?? '',
+                            picList?[index].title ?? '',
                             style: const TextStyle(
                                 color: Color.fromRGBO(220, 220, 220, 1)),
+                          ),
+                        )),
+                    Positioned(
+                        top: 0,
+                        right: 0,
+                        child: ClipPath(
+                          clipper: TriangleCliper(),
+                          child: Container(
+                            width: 40,
+                            height: 35,
+                            padding: const EdgeInsets.only(right: 2),
+                            alignment: Alignment.topRight,
+                            color: Colors.amber,
+                            child: const Icon(
+                              Icons.remove_red_eye,
+                              color: Colors.white,
+                              size: 20,
+                            ),
                           ),
                         )),
                   ],
@@ -121,4 +150,17 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ));
   }
+}
+
+class TriangleCliper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    Path path = Path();
+    path.lineTo(size.height + (size.width - size.height).abs(), 0);
+    path.lineTo(size.width, size.height);
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
