@@ -18,7 +18,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(title: '每日精选'),
     );
   }
 }
@@ -33,8 +33,12 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   var picList = HomeList().album;
-  int page = 1;
-  int pageCount = 15;
+  int page = 1; //第几页
+  int filteredPageCount = 0; //过滤的数量
+  // int pageCount = 0; //页长
+  int totalPages = 0; //总页数
+  bool loading = false;
+  bool refreshing = false;
 
   @override
   void initState() {
@@ -43,6 +47,11 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> _getImagesList() async {
+    if (!refreshing) {
+      setState(() {
+        loading = true;
+      });
+    }
     var client = HttpClient();
     try {
       HttpClientRequest request = await client.get(
@@ -51,17 +60,39 @@ class _MyHomePageState extends State<MyHomePage> {
       final data = await response.transform(utf8.decoder).join();
       HomeList homeList = HomeList.fromJson(jsonDecode(data));
       //过滤广告
-      for (int i = 0; i < 2; i++) {
+      for (int i = 0; i < 15; i++) {
         if (homeList.album?[i].timing == '0') {
           homeList.album?.removeAt(i);
+          continue;
+        }
+        if (homeList.album?[i].timing == '1') {
+          setState(() {
+            filteredPageCount = i;
+          });
+          break;
         }
       }
+      print(filteredPageCount);
       setState(() {
         picList = homeList.album;
+        totalPages = int.parse(homeList.total!);
+        refreshing = false;
       });
+      if (!refreshing) {
+        Future.delayed(const Duration(seconds: 1)).then((value) => setState(() {
+              loading = false;
+            }));
+      }
     } finally {
       client.close();
     }
+  }
+
+  Future<void> _refresh() {
+    setState(() {
+      refreshing = true;
+    });
+    return _getImagesList();
   }
 
   @override
@@ -89,66 +120,94 @@ class _MyHomePageState extends State<MyHomePage> {
                     ]),
           ],
         ),
-        body: Padding(
-          padding: const EdgeInsets.all(8),
-          child: ListView.separated(
-            itemCount: picList!.length,
-            itemBuilder: (context, index) {
-              return Card(
-                  child: Padding(
-                padding: const EdgeInsets.all(8),
-                child: Stack(
-                  alignment: Alignment.bottomCenter,
-                  children: [
-                    Image(image: NetworkImage(picList?[index].url ?? '')),
-                    Container(
-                        alignment: Alignment.bottomCenter,
-                        // width: 100,
-                        height: 40,
-                        // color: const Color.fromRGBO(0, 0, 0, 0.3),
-                        decoration: const BoxDecoration(
-                            gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                              Color.fromRGBO(0, 0, 0, 0),
-                              Color.fromRGBO(0, 0, 0, 0.3),
-                              Color.fromRGBO(0, 0, 0, 0.5),
-                            ])),
-                        child: Padding(
-                          padding: const EdgeInsets.only(bottom: 5),
-                          child: Text(
-                            picList?[index].title ?? '',
-                            style: const TextStyle(
-                                color: Color.fromRGBO(220, 220, 220, 1)),
-                          ),
-                        )),
-                    Positioned(
-                        top: 0,
-                        right: 0,
-                        child: ClipPath(
-                          clipper: TriangleCliper(),
-                          child: Container(
-                            width: 40,
-                            height: 35,
-                            padding: const EdgeInsets.only(right: 2),
-                            alignment: Alignment.topRight,
-                            color: Colors.amber,
-                            child: const Icon(
-                              Icons.remove_red_eye,
-                              color: Colors.white,
-                              size: 20,
-                            ),
-                          ),
-                        )),
-                  ],
-                ),
-              ));
-            },
-            separatorBuilder: (BuildContext context, int index) =>
-                const Divider(),
+        body: RefreshIndicator(
+          onRefresh: _refresh,
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: listCard(),
           ),
         ));
+  }
+
+  Widget listCard() {
+    if (loading && !refreshing) {
+      return Container(
+        alignment: Alignment.topCenter,
+        child: const CircularProgressIndicator(),
+      );
+    }
+    return ListView.separated(
+      itemCount: picList!.length,
+      itemBuilder: (context, index) {
+        // print(index.toString() + "    " + (picList!.length-1).toString());
+        // if (index == picList!.length - 1) {
+        //   return Container(
+        //     alignment: Alignment.center,
+        //     padding: const EdgeInsets.only(bottom: 10),
+        //     child: const SizedBox(
+        //         width: 25, height: 25, child: CircularProgressIndicator()),
+        //   );
+        // }
+        if (index == picList!.length - 1) {
+          return Container(
+            alignment: Alignment.center,
+            padding: const EdgeInsets.only(bottom: 10),
+            child: const Text('没有更多了'),
+          );
+        }
+        return Card(
+            child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Stack(
+            alignment: Alignment.bottomCenter,
+            children: [
+              Image(image: NetworkImage(picList?[index].url ?? '')),
+              Container(
+                  alignment: Alignment.bottomCenter,
+                  // width: 100,
+                  height: 40,
+                  // color: const Color.fromRGBO(0, 0, 0, 0.3),
+                  decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                        Color.fromRGBO(0, 0, 0, 0),
+                        Color.fromRGBO(0, 0, 0, 0.3),
+                        Color.fromRGBO(0, 0, 0, 0.5),
+                      ])),
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 5),
+                    child: Text(
+                      picList?[index].title ?? '',
+                      style: const TextStyle(
+                          color: Color.fromRGBO(220, 220, 220, 1)),
+                    ),
+                  )),
+              Positioned(
+                  top: 0,
+                  right: 0,
+                  child: ClipPath(
+                    clipper: TriangleCliper(),
+                    child: Container(
+                      width: 40,
+                      height: 35,
+                      padding: const EdgeInsets.only(right: 2),
+                      alignment: Alignment.topRight,
+                      color: Colors.amber,
+                      child: const Icon(
+                        Icons.remove_red_eye,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                  )),
+            ],
+          ),
+        ));
+      },
+      separatorBuilder: (BuildContext context, int index) => const Divider(),
+    );
   }
 }
 

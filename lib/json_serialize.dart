@@ -45,20 +45,23 @@ class Album {
   String? ds;
   String? timing;
   String? timingpublish;
+  bool? status = false;
 
-  Album(
-      {this.id,
-      this.title,
-      this.url,
-      this.addtime,
-      this.adshow,
-      this.fabu,
-      this.encoded,
-      this.amd5,
-      this.sort,
-      this.ds,
-      this.timing,
-      this.timingpublish});
+  Album({
+    this.id,
+    this.title,
+    this.url,
+    this.addtime,
+    this.adshow,
+    this.fabu,
+    this.encoded,
+    this.amd5,
+    this.sort,
+    this.ds,
+    this.timing,
+    this.timingpublish,
+    this.status,
+  });
 
   Album.fromJson(Map<String, dynamic> json) {
     id = json['id'];
