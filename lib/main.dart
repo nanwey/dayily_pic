@@ -35,10 +35,9 @@ class _MyHomePageState extends State<MyHomePage> {
   var picList = HomeList().album;
   int page = 1; //第几页
   int filteredPageCount = 0; //过滤的数量
-  // int pageCount = 0; //页长
   int totalPages = 0; //总页数
-  bool loading = false;
-  bool refreshing = false;
+  bool loading = false; //首次进入加载指示器
+  bool refreshing = false; //刷新指示器
 
   @override
   void initState() {
@@ -72,16 +71,23 @@ class _MyHomePageState extends State<MyHomePage> {
           break;
         }
       }
-      print(filteredPageCount);
-      setState(() {
-        picList = homeList.album;
-        totalPages = int.parse(homeList.total!);
-        refreshing = false;
-      });
+      print(filteredPageCount); //过滤掉的广告数量
       if (!refreshing) {
+        setState(() {
+          picList = homeList.album;
+          totalPages = int.parse(homeList.total!);
+        });
         Future.delayed(const Duration(seconds: 1)).then((value) => setState(() {
               loading = false;
             }));
+      }
+      if (refreshing) {
+        return Future.delayed(const Duration(seconds: 1))
+            .then((v) => setState(() {
+                  picList = homeList.album;
+                  totalPages = int.parse(homeList.total!);
+                  refreshing = false;
+                }));
       }
     } finally {
       client.close();
@@ -137,17 +143,10 @@ class _MyHomePageState extends State<MyHomePage> {
       );
     }
     return ListView.separated(
+      physics:
+          const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
       itemCount: picList!.length,
       itemBuilder: (context, index) {
-        // print(index.toString() + "    " + (picList!.length-1).toString());
-        // if (index == picList!.length - 1) {
-        //   return Container(
-        //     alignment: Alignment.center,
-        //     padding: const EdgeInsets.only(bottom: 10),
-        //     child: const SizedBox(
-        //         width: 25, height: 25, child: CircularProgressIndicator()),
-        //   );
-        // }
         if (index == picList!.length - 1) {
           return Container(
             alignment: Alignment.center,
@@ -164,9 +163,7 @@ class _MyHomePageState extends State<MyHomePage> {
               Image(image: NetworkImage(picList?[index].url ?? '')),
               Container(
                   alignment: Alignment.bottomCenter,
-                  // width: 100,
                   height: 40,
-                  // color: const Color.fromRGBO(0, 0, 0, 0.3),
                   decoration: const BoxDecoration(
                       gradient: LinearGradient(
                           begin: Alignment.topCenter,

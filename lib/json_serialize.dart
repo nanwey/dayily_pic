@@ -15,13 +15,13 @@ class HomeList {
     if (json['album'] != null) {
       album = <Album>[];
       json['album'].forEach((v) {
-        album!.add(new Album.fromJson(v));
+        album!.add(Album.fromJson(v));
       });
     }
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
+    final Map<String, dynamic> data = Map<String, dynamic>();
     data['total'] = this.total;
     data['page'] = this.page;
     data['pagecount'] = this.pagecount;
@@ -79,7 +79,7 @@ class Album {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = new Map<String, dynamic>();
+    final Map<String, dynamic> data = Map<String, dynamic>();
     data['id'] = this.id;
     data['title'] = this.title;
     data['url'] = this.url;
